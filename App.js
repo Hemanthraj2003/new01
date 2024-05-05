@@ -1,9 +1,9 @@
-// import {StatusBar} from 'expo-status-bar';
-// import {Button, StyleSheet, Text, View} from 'react-native';
 // import Local from './Local';
-// import Online from './Onine';
 // import VideoPlayer from './videoPlayer';
-import {StyleSheet, Text, View} from 'react-native';
+import React, {useState} from 'react';
+
+import Online from './components/Onine';
+import {StyleSheet, View} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import ButSec from './components/ButSec';
@@ -11,10 +11,22 @@ import Header from './components/Header';
 import MidSec from './components/MidSec';
 
 function HomeScreen({navigation}) {
+  const [isOnlineVisible, setIsOnlineVisible] = useState(false);
+
+  const toggleOnlineVisibility = () => {
+    setIsOnlineVisible(!isOnlineVisible);
+  };
+
   return (
     <View style={styles.white}>
+      {isOnlineVisible && (
+        <Online
+          navigation={navigation}
+          toggleOnlineVisibility={toggleOnlineVisibility}
+        />
+      )}
       <Header />
-      <ButSec />
+      <ButSec toggleOnlineVisibility={toggleOnlineVisibility} />
       <MidSec />
     </View>
   );
@@ -27,6 +39,7 @@ function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Online" component={Online} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -34,15 +47,9 @@ function App() {
 
 const styles = StyleSheet.create({
   white: {
-    // color: '#E1DEDD',
-    // backgroundColor: '#252525',
     backgroundColor: 'black',
     height: '100%',
   },
-  // padding: {
-  //   paddingTop: '20px',
-  //   padding: '10px',
-  // },
 });
 
 export default App;

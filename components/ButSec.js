@@ -1,13 +1,14 @@
-import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 import Icon2 from 'react-native-vector-icons/AntDesign';
 
-const ButSec = () => {
+const ButSec = ({toggleOnlineVisibility}) => {
   return (
     <View style={styles.size}>
       <View style={styles.buttons}>
-        <TouchableOpacity style={{alignItems: 'center'}}>
+        <TouchableOpacity
+          style={{alignItems: 'center'}}
+          onPress={toggleOnlineVisibility}>
           <Icon2 name="earth" size={50} color="#ffffff" />
           <Text>Online</Text>
         </TouchableOpacity>
@@ -18,9 +19,12 @@ const ButSec = () => {
           <Text>My Videos</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Render Online component if isOnlineVisible is true */}
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   size: {
     maxHeight: '12%',
@@ -29,7 +33,6 @@ const styles = StyleSheet.create({
     marginVertical: '5%',
     backgroundColor: '#3B3B3B',
     borderRadius: 20,
-    // overflow: 'hidden',
     padding: '2%',
     alignItems: 'center',
     justifyContent: 'center',
@@ -49,4 +52,5 @@ const styles = StyleSheet.create({
     width: '70%',
   },
 });
+
 export default ButSec;
