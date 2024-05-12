@@ -1,13 +1,13 @@
 import React, {useEffect, useState} from 'react';
 import Video from 'react-native-video';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, Text} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 import {handleFetch} from './handleFetch';
 
 const VideoPlayer = () => {
   const route = useRoute();
   const [videoUri, setVideoUri] = useState('');
-  const {videoName, videoUrl} = route.params;
+  // const {videoName, videoUrl} = route.params;
   useEffect(() => {
     const fetchData = async () => {
       if (route.params.videoName) {
@@ -23,7 +23,11 @@ const VideoPlayer = () => {
   }, [route.params]);
   return (
     <View style={styles.container}>
-      <Video source={{uri: videoUri}} style={styles.video} controls={true} />
+      {videoUri ? (
+        <Video source={{uri: videoUri}} style={styles.video} controls={true} />
+      ) : (
+        <Text style={styles.text}>Loading...</Text>
+      )}
     </View>
   );
 };
@@ -37,6 +41,9 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: 300,
+  },
+  text: {
+    color: 'black',
   },
 });
 
