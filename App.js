@@ -9,6 +9,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import ButSec from './components/ButSec';
 import Header from './components/Header';
 import MidSec from './components/MidSec';
+import VideoPlayer from './components/videoPlayer';
 
 function HomeScreen({navigation}) {
   const [isOnlineVisible, setIsOnlineVisible] = useState(false);
@@ -22,6 +23,7 @@ function HomeScreen({navigation}) {
       {isOnlineVisible && (
         <Online
           navigation={navigation}
+          isVisible={isOnlineVisible}
           toggleOnlineVisibility={toggleOnlineVisibility}
         />
       )}
@@ -38,8 +40,8 @@ function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Online" component={Online} />
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
+        <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
       </Stack.Navigator>
     </NavigationContainer>
   );

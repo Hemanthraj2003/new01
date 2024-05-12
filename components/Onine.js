@@ -8,8 +8,11 @@ import {
   TextInput,
 } from 'react-native';
 
-const Online = ({isVisible, toggleOnlineVisibility}) => {
+const Online = ({navigation, isVisible, toggleOnlineVisibility}) => {
   const [text, setText] = useState('');
+  const playIsUrl = () => {
+    navigation.navigate('VideoPlayer', {videoUrl: text});
+  };
   return (
     <Modal
       animationType="slide"
@@ -31,7 +34,9 @@ const Online = ({isVisible, toggleOnlineVisibility}) => {
             />
           </View>
           <View style={styles.botbut}>
-            <TouchableOpacity style={styles.buttonRed}>
+            <TouchableOpacity
+              style={styles.buttonRed}
+              onPress={() => playIsUrl()}>
               <Text style={styles.buttonText}>Play</Text>
             </TouchableOpacity>
             <TouchableOpacity

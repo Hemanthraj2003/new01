@@ -12,7 +12,6 @@ import VideoPlayer from './videoPlayer';
 
 const Local = ({navigation}) => {
   const [allVideos, setAllVideos] = useState([]);
-  //LOAD AT THE BEGINING OF APP
   useEffect(() => {
     // requestStoragePermission();
     scanForVideoFiles();
