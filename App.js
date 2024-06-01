@@ -7,7 +7,8 @@ import {StyleSheet, View} from 'react-native';
 import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import ButSec from './components/ButSec';
-import Header from './components/Header';
+import Header from './components/Header'; 
+//new commint
 import MidSec from './components/MidSec';
 import VideoPlayer from './components/videoPlayer';
 import {Linking} from 'react-native';
