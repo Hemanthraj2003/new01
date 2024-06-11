@@ -1,17 +1,15 @@
-// import Local from './Local';
-// import VideoPlayer from './videoPlayer';
-import React, {useState} from 'react';
-
+import Local from './components/Local';
+import React, {useEffect, useState, useRef} from 'react';
+import {PermissionsAndroid, Linking, Platform} from 'react-native';
 import Online from './components/Onine';
 import {StyleSheet, View} from 'react-native';
 import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import ButSec from './components/ButSec';
-import Header from './components/Header'; 
-//new commint
+import Header from './components/Header';
 import MidSec from './components/MidSec';
 import VideoPlayer from './components/videoPlayer';
-import {Linking} from 'react-native';
+
 function HomeScreen({navigation}) {
   const [isOnlineVisible, setIsOnlineVisible] = useState(false);
 
@@ -25,11 +23,15 @@ function HomeScreen({navigation}) {
         <Online
           navigation={navigation}
           isVisible={isOnlineVisible}
+          setIsVisible={setIsOnlineVisible}
           toggleOnlineVisibility={toggleOnlineVisibility}
         />
       )}
       <Header />
-      <ButSec toggleOnlineVisibility={toggleOnlineVisibility} />
+      <ButSec
+        navigation={navigation}
+        toggleOnlineVisibility={toggleOnlineVisibility}
+      />
       <MidSec />
     </View>
   );
@@ -38,7 +40,28 @@ function HomeScreen({navigation}) {
 const Stack = createNativeStackNavigator();
 
 function App() {
-  React.useEffect(() => {
+  async function requestVideoWritePermission() {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log('Write External Storage permission granted');
+      } else {
+        console.log('Write External Storage permission denied');
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  }
+
+  useEffect(() => {
+    requestVideoWritePermission();
+  }, []);
+  // Call this function whenever you need to request the permission
+  const navigationRef = useRef();
+
+  useEffect(() => {
     const handleDeepLinking = async () => {
       const initialUrl = await Linking.getInitialURL();
       if (initialUrl) {
@@ -55,7 +78,6 @@ function App() {
 
       Linking.addEventListener('url', handleUrl);
 
-      // Cleanup function to remove the event listener when the component unmounts
       return () => {
         Linking.removeEventListener('url', handleUrl);
       };
@@ -64,13 +86,12 @@ function App() {
     handleDeepLinking();
   }, []);
 
-  const navigationRef = React.useRef();
-
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{headerShown: false}}>
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
+        <Stack.Screen name="Local" component={Local} />
       </Stack.Navigator>
     </NavigationContainer>
   );

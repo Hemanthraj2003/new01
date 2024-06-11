@@ -8,10 +8,18 @@ import {
   TextInput,
 } from 'react-native';
 
-const Online = ({navigation, isVisible, toggleOnlineVisibility}) => {
+const Online = ({
+  navigation,
+  isVisible,
+  setIsVisible,
+  toggleOnlineVisibility,
+}) => {
   const [text, setText] = useState('');
   const playIsUrl = () => {
-    navigation.navigate('VideoPlayer', {videoUrl: text});
+    if (text) {
+      navigation.navigate('VideoPlayer', {videoUrl: text});
+      setIsVisible(false);
+    }
   };
   return (
     <Modal

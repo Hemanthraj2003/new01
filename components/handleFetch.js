@@ -10,7 +10,7 @@ export const handleFetch = async rawUrl => {
     const {url, title} = docSnap.data();
     console.log('URL:', url);
     console.log('Title:', title);
-    return url;
+    return {url, title};
   } else {
     console.log('Document does not exist!');
   }

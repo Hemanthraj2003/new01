@@ -2,7 +2,10 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 import Icon2 from 'react-native-vector-icons/AntDesign';
 
-const ButSec = ({toggleOnlineVisibility}) => {
+const ButSec = ({navigation, toggleOnlineVisibility}) => {
+  const goLocal = () => {
+    navigation.navigate('Local');
+  };
   return (
     <View style={styles.size}>
       <View style={styles.buttons}>
@@ -14,7 +17,7 @@ const ButSec = ({toggleOnlineVisibility}) => {
         </TouchableOpacity>
       </View>
       <View style={styles.buttons}>
-        <TouchableOpacity style={{alignItems: 'center'}}>
+        <TouchableOpacity style={{alignItems: 'center'}} onPress={goLocal}>
           <Icon name="folder-video" size={50} color="#ffffff" />
           <Text>My Videos</Text>
         </TouchableOpacity>
