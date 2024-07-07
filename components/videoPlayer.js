@@ -1,6 +1,5 @@
 import {useRoute} from '@react-navigation/native';
 import {handleFetch} from './handleFetch';
-
 import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
@@ -17,13 +16,14 @@ import Slider from '@react-native-community/slider';
 import Video from 'react-native-video';
 import Icons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {saveHistory} from './History';
 
-const VideoPlayer = () => {
+const VideoPlayer = ({navigation}) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [paused, setPaused] = useState(true);
+  const [paused, setPaused] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const videoRef = useRef(null);
   const [videoUri, setVideoUri] = useState('');
@@ -34,6 +34,7 @@ const VideoPlayer = () => {
   const [subtitleModalVisible, setSubtitleModalVisible] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState({type: 'index', value: 0});
   const [isLoading, setIsLoading] = useState(true);
+  const [isRecorded, setIsRecorded] = useState(false);
   const [selectedSubtitle, setSelectedSubtitle] = useState({
     type: 'index',
     value: -1,
@@ -76,6 +77,15 @@ const VideoPlayer = () => {
         } catch (error) {
           console.log(error);
           alert('VIDEO NOT FOUND!!');
+        }
+      } else if (route.params.histroyVideo) {
+        try {
+          const {link, title} = route.params.histroyVideo;
+          console.log('link: ' + link);
+          setVideoUri(link);
+          setVideoTitle(title);
+        } catch (error) {
+          console.log('error: ' + error);
         }
       }
     };
@@ -136,6 +146,7 @@ const VideoPlayer = () => {
           setDuration(data.duration);
           onLoad(data);
           setIsLoading(false);
+          saveHistory(videoUri, videoTitle);
         }}
         onBuffer={({isBuffering}) => setIsBuffering(isBuffering)}
         resizeMode="contain"
@@ -214,7 +225,13 @@ const VideoPlayer = () => {
               {/* DOWNLOAD BUTTON */}
               <TouchableOpacity
                 style={styles.buttonDownload}
-                onPress={() => alert('Starting download')}>
+                onPress={() => {
+                  setPaused(true);
+                  navigation.navigate('Downloads', {
+                    title: videoTitle,
+                    source: videoUri,
+                  });
+                }}>
                 <Text style={styles.buttonTextDownload}>DOWNLOAD</Text>
               </TouchableOpacity>
             </View>
@@ -322,12 +339,14 @@ const VideoPlayer = () => {
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
     backgroundColor: '#000',
   },
   video: {
     width: '100%',
-    height: '100%', // Default height when not in full-screen
+    height: 200, // Default height when not in full-screen
   },
   fullScreenVideo: {
     width: '100%',

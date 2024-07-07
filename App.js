@@ -5,14 +5,35 @@ import Online from './components/Onine';
 import {StyleSheet, View} from 'react-native';
 import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import RNFS from 'react-native-fs';
+
 import ButSec from './components/ButSec';
 import Header from './components/Header';
 import MidSec from './components/MidSec';
 import VideoPlayer from './components/videoPlayer';
-
+import Downloads from './components/Downloads';
+import DownloadManager from './components/DownloadManager';
 function HomeScreen({navigation}) {
   const [isOnlineVisible, setIsOnlineVisible] = useState(false);
+  const videosDirectory = `${RNFS.DocumentDirectoryPath}/videos`;
 
+  RNFS.exists(videosDirectory)
+    .then(exists => {
+      if (!exists) {
+        RNFS.mkdir(videosDirectory)
+          .then(() => {
+            console.log('Videos directory created');
+          })
+          .catch(err => {
+            console.error('Error creating videos directory:', err);
+          });
+      } else {
+        console.log('Videos directory already exists');
+      }
+    })
+    .catch(err => {
+      console.error('Error checking videos directory:', err);
+    });
   const toggleOnlineVisibility = () => {
     setIsOnlineVisible(!isOnlineVisible);
   };
@@ -32,7 +53,7 @@ function HomeScreen({navigation}) {
         navigation={navigation}
         toggleOnlineVisibility={toggleOnlineVisibility}
       />
-      <MidSec />
+      <MidSec navigation={navigation} />
     </View>
   );
 }
@@ -92,6 +113,8 @@ function App() {
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
         <Stack.Screen name="Local" component={Local} />
+        <Stack.Screen name="Downloads" component={Downloads} />
+        <Stack.Screen name="DownloadManager" component={DownloadManager} />
       </Stack.Navigator>
     </NavigationContainer>
   );
