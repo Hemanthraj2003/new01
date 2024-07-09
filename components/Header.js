@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Entypo';
 const Header = () => {
   return (
     <View style={styles.basic}>
-      <Text style={styles.color}>Video Player Name</Text>
+      <Text style={styles.color}>Q-player</Text>
       <Icon name="info-with-circle" size={22} color="#ffffff" />
     </View>
   );

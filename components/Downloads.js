@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Alert,
   Button,
   ProgressBarAndroid,
   StyleSheet,
@@ -10,69 +11,126 @@ import {
 import RNFetchBlob from 'rn-fetch-blob';
 import {useRoute} from '@react-navigation/native';
 import RNFS from 'react-native-fs';
+import Icons from 'react-native-vector-icons/MaterialIcons';
 
-import {
-  // url
-  formatBytes,
-  pauseFileDownload,
-  saveDownloadProgress,
-  loaddownloadProgressData,
-} from './downloadFunctions';
+import {formatBytes} from './downloadFunctions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const Downloads = ({navigation, title, source, DownloadStatu}) => {
+const Downloads = ({
+  navigation,
+  title,
+  source,
+  DownloadStatu,
+  FilePath,
+  Size,
+  setIsUpdated,
+}) => {
   console.log(DownloadStatu);
   const url = source;
-  const filePath = `${RNFS.DocumentDirectoryPath}/videos/${title}.mp4`;
+  const filePath = DownloadStatu
+    ? FilePath
+    : `${RNFS.DocumentDirectoryPath}/videos/${title}.mp4`;
   const taskRef = useRef(null);
-  const [downloaded, setDownloaded] = useState(10);
-  const [fileSize, setFileSize] = useState(100);
+
+  const [downloaded, setDownloaded] = useState(0);
+
+  const [fileSize, setFileSize] = useState(Size);
   const [downloadFinished, setDownloadFinished] = useState(DownloadStatu);
   const [downloading, setDownloading] = useState(false);
   const [responsePath, setResponsePath] = useState('');
 
   useEffect(() => {
-    const reset = async () => {
-      await AsyncStorage.removeItem('downloadDetails');
-      const testData = [
-        {
-          Title: route.params.title,
-          Source: route.params.source,
-          DownloadStatus: false,
-          ResponseFilePath: '',
-          Size: 0,
-        },
-      ];
-      await AsyncStorage.setItem('downloadDetails', JSON.stringify(testData));
-    };
-
-    // reset();
-  }, []);
-  useEffect(() => {
     console.log(responsePath);
   }, [responsePath]);
 
   useEffect(() => {
-    console.log(formatBytes(downloaded) + '/' + formatBytes(fileSize));
-  }, [downloaded, fileSize]);
+    if (downloaded != 0)
+      console.log('a:' + formatBytes(downloaded) + '/' + formatBytes(fileSize));
+  }, [downloaded]);
 
-  const downloadSuccess = async () => {
+  const downloadSuccess = async (FileSize, resPath) => {
+    setDownloadFinished(true);
+
     const downloadDetailsString = await AsyncStorage.getItem('downloadDetails');
     let downloadDetailsArray = JSON.parse(downloadDetailsString);
 
     let thisDownloadDetails = downloadDetailsArray.find(
       item => item.Source === url,
     );
-    thisDownloadDetails.DownloadStatus = downloadFinished;
-    thisDownloadDetails.Size = fileSize;
-    thisDownloadDetails.ResponseFilePath = responsePath;
-
+    thisDownloadDetails.DownloadStatus = true;
+    thisDownloadDetails.Size = FileSize;
+    console.log('Size: ' + FileSize);
+    thisDownloadDetails.ResponseFilePath = resPath;
+    console.log('ON DOWNLOAD SCUSSES' + thisDownloadDetails.DownloadStatus);
     await AsyncStorage.setItem(
       'downloadDetails',
       JSON.stringify(downloadDetailsArray),
     );
   };
+  const cancel = async () => {
+    const jsonData = await AsyncStorage.getItem('downloadDetails');
+    const data = JSON.parse(jsonData);
 
+    const filteredData = data.filter(item => item.Source !== source);
+    setIsUpdated(true);
+    await AsyncStorage.setItem('downloadDetails', JSON.stringify(filteredData));
+  };
+  const deleteFile = async () => {
+    Alert.alert(
+      'Do you want to Delete?',
+      title,
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Deletion cancelled'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: unLink, // Call the download function if OK is pressed
+        },
+      ],
+      {cancelable: false},
+    );
+  };
+
+  const cancelDownloading = async () => {
+    Alert.alert(
+      'Do you want to Delete?',
+      title,
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Deletion cancelled'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: unLink, // Call the download function if OK is pressed
+        },
+      ],
+      {cancelable: false},
+    );
+  };
+  const unLink = async () => {
+    Alert.alert('Delete', 'The file was successfully Deleted.', [{text: 'OK'}]);
+    try {
+      const jsonData = await AsyncStorage.getItem('downloadDetails');
+      if (jsonData) {
+        const data = JSON.parse(jsonData);
+        const filteredData = data.filter(item => item.Source !== source);
+        setIsUpdated(true);
+        await AsyncStorage.setItem(
+          'downloadDetails',
+          JSON.stringify(filteredData),
+        );
+        console.log('Data after removal:', filteredData);
+      }
+    } catch (error) {
+      console.error('Error removing data:', error);
+    }
+    await RNFetchBlob.fs.unlink(filePath);
+  };
   const downloadFile = async () => {
     const fileExists = await RNFetchBlob.fs.exists(filePath);
     if (fileExists) {
@@ -92,19 +150,19 @@ const Downloads = ({navigation, title, source, DownloadStatu}) => {
       .progress((recived, total) => {
         const dataRecived = parseInt(recived, 10);
         const dataTotal = parseInt(total, 10);
-        if (fileSize == 0) {
-          setFileSize(dataTotal);
-        }
+        setFileSize(dataTotal);
         setDownloaded(dataRecived);
       })
       .then(Response => {
         console.log('Download completerd');
-        setDownloadFinished(true);
-        const update = async () => {
-          await downloadSuccess();
+        const size = async () => {
+          const fileStats = await RNFS.stat(filePath);
+          const FileSize = fileStats.size;
+          const resPath = Response.path();
+
+          await downloadSuccess(FileSize, resPath);
         };
-        update();
-        setResponsePath(Response.path());
+        size();
       })
       .catch(error => {
         console.log(error);
@@ -112,89 +170,201 @@ const Downloads = ({navigation, title, source, DownloadStatu}) => {
   };
   const download = async () => {
     setDownloading(true);
+    const downloadingString = await AsyncStorage.getItem('downloadDetails');
+    let downloadingArray = JSON.parse(downloadingString);
+
+    let thisDownloading = downloadingArray.find(item => item.Source === url);
+    thisDownloading.Downloading = true;
+    await AsyncStorage.setItem(
+      'downloadDetails',
+      JSON.stringify(downloadingArray),
+    );
+    await downloadFile();
+  };
+  const handleDownloadPress = () => {
+    Alert.alert(
+      'Do you want to download?',
+      'dont leave the screen while downloading',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Download cancelled'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: download, // Call the download function if OK is pressed
+        },
+      ],
+      {cancelable: false},
+    );
   };
   return (
     <View style={styles.background}>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'center',
-          marginVertical: 12,
-        }}>
-        <Text style={styles.titleText} numberOfLines={1} ellipsizeMode="tail">
-          {title}
-        </Text>
-      </View>
-      {!downloading ? (
-        <View style={styles.downloadcancel}>
-          {downloadFinished ? (
-            <View style={styles.downloadFinished}>
-              <TouchableOpacity
-                style={styles.downloadButton}
-                onPress={download}>
-                <Text style={styles.buttonText}>PLAY</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.downloadButton, styles.buttonCancel]}
-                onPress={download}>
-                <Text style={[styles.buttonText, styles.textCancel]}>
-                  DELETE
-                </Text>
+      {downloadFinished ? (
+        <View style={styles.downloadFinished}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('VideoPlayer', {videoName: filePath})
+            }>
+            <View style={styles.thumbNail}>
+              <Icons name="play-circle-outline" size={50} color="#957500" />
+            </View>
+          </TouchableOpacity>
+          <View style={{width: 210, padding: 12}}>
+            <Text numberOfLines={2} ellipsizeMode="tail">
+              {title}
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                marginTop: 15,
+                justifyContent: 'space-between',
+                marginHorizontal: 2,
+                alignItems: 'center',
+              }}>
+              <Text style={{color: '#616161', marginStart: 10}}>
+                {formatBytes(fileSize)}
+              </Text>
+              <TouchableOpacity onPress={deleteFile}>
+                <View
+                  style={{
+                    padding: 8,
+                    backgroundColor: '#242424',
+                    width: 80,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRadius: 10,
+                  }}>
+                  <Text
+                    style={{
+                      color: '#9c9c9c',
+                      fontSize: 15,
+                      fontWeight: '500',
+                    }}>
+                    Delete
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.downloadFinished}>
+          </View>
+        </View>
+      ) : downloading ? (
+        <View>
+          <View style={styles.downloadFinished}>
+            <TouchableOpacity>
+              <View style={styles.thumbNailDownloading}>
+                <Icons name="play-circle-outline" size={30} color="#957500" />
+              </View>
+            </TouchableOpacity>
+            <View style={{width: 210, padding: 12}}>
+              <Text numberOfLines={2} ellipsizeMode="tail">
+                {title}
+              </Text>
+            </View>
+          </View>
+          <View style={{marginTop: -10}}>
+            {fileSize > 0 && (
+              <ProgressBarAndroid
+                style={{marginHorizontal: 15}}
+                styleAttr="Horizontal"
+                indeterminate={false}
+                progress={downloaded / fileSize}
+                color="#957500" // Background color of the progress bar
+              />
+            )}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                marginEnd: 10,
+              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  marginEnd: 102,
+                }}>
+                <Text>
+                  {formatBytes(downloaded)} /{formatBytes(fileSize)}
+                </Text>
+              </View>
               <TouchableOpacity
-                style={styles.downloadButton}
-                onPress={download}>
-                <Text style={styles.buttonText}>DOWNLOAD</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.downloadButton, styles.buttonCancel]}
-                onPress={download}>
-                <Text style={[styles.buttonText, styles.textCancel]}>
+                style={{
+                  backgroundColor: '#242424',
+                  padding: 10,
+                  paddingHorizontal: 30,
+                  borderRadius: 100,
+                }}
+                onPress={cancelDownloading}>
+                <Text
+                  style={{fontSize: 12, color: '#9c9c9c', fontWeight: '600'}}>
                   CANCEL
                 </Text>
               </TouchableOpacity>
             </View>
-          )}
+          </View>
         </View>
       ) : (
-        <View style={{marginTop: 0}}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              marginEnd: 10,
-            }}>
-            <Text>
-              {formatBytes(downloaded)} /{formatBytes(fileSize)}
+        <View style={styles.downloadFinished}>
+          <TouchableOpacity>
+            <View style={styles.thumbNail}>
+              <Icons name="play-circle-outline" size={50} color="#957500" />
+            </View>
+          </TouchableOpacity>
+          <View style={{width: 210, padding: 12}}>
+            <Text numberOfLines={2} ellipsizeMode="tail">
+              {title}
             </Text>
-          </View>
-          <ProgressBarAndroid
-            style={{marginHorizontal: 12}}
-            styleAttr="Horizontal"
-            indeterminate={false}
-            progress={downloaded / fileSize}
-            color="#957500" // Background color of the progress bar
-          />
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              marginEnd: 10,
-            }}>
-            <TouchableOpacity
+            <View
               style={{
-                backgroundColor: '#957500',
-                padding: 8,
-                paddingHorizontal: 30,
-                borderRadius: 100,
+                flexDirection: 'row',
+                marginTop: 15,
+                justifyContent: 'space-between',
+                marginHorizontal: 2,
+                alignItems: 'center',
               }}>
-              <Text style={{fontSize: 12, color: 'black', fontWeight: '600'}}>
-                CANCEL
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity onPress={handleDownloadPress}>
+                <View
+                  style={{
+                    padding: 8,
+                    backgroundColor: '#957500',
+                    width: 85,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRadius: 10,
+                  }}>
+                  <Text
+                    style={{
+                      color: 'black',
+                      fontSize: 15,
+                      fontWeight: '500',
+                    }}>
+                    Download
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={cancel}>
+                <View
+                  style={{
+                    padding: 8,
+                    backgroundColor: '#242424',
+                    width: 80,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRadius: 10,
+                  }}>
+                  <Text
+                    style={{
+                      color: '#9c9c9c',
+                      fontSize: 15,
+                      fontWeight: '500',
+                    }}>
+                    Cancel
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
@@ -204,49 +374,33 @@ const Downloads = ({navigation, title, source, DownloadStatu}) => {
 
 const styles = StyleSheet.create({
   background: {
-    height: 140,
+    height: 150,
     marginHorizontal: 8,
     marginVertical: 10,
     backgroundColor: 'black',
-    padding: 12,
     borderRadius: 10,
   },
+  thumbNail: {
+    backgroundColor: '#1f1f1f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 110,
+    height: 110,
+    borderRadius: 15,
+  },
+  thumbNailDownloading: {
+    backgroundColor: '#1f1f1f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 15,
+  },
 
-  buttonCancel: {
-    backgroundColor: '#A8A8A8',
-  },
-  textCancel: {
-    color: 'white',
-  },
-  downloadcancel: {
-    justifyContent: 'space-between',
-    flexDirection: 'row',
-    marginHorizontal: 15,
-  },
   downloadFinished: {
-    justifyContent: 'space-between',
     flexDirection: 'row',
-  },
 
-  titleText: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  downloadButton: {
-    margin: 10,
-    width: 120,
-    height: 40,
-    backgroundColor: '#957500', // Background color of the button
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: 'black', // Text color
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    padding: 15,
   },
 });
 

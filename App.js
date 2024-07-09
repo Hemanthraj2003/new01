@@ -6,6 +6,7 @@ import {StyleSheet, View} from 'react-native';
 import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import RNFS from 'react-native-fs';
+import {GlobalProvider} from './GlobalContext';
 
 import ButSec from './components/ButSec';
 import Header from './components/Header';
@@ -108,15 +109,17 @@ function App() {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{headerShown: false}}>
-        <Stack.Screen name="HomeScreen" component={HomeScreen} />
-        <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
-        <Stack.Screen name="Local" component={Local} />
-        <Stack.Screen name="Downloads" component={Downloads} />
-        <Stack.Screen name="DownloadManager" component={DownloadManager} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <GlobalProvider>
+      <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator screenOptions={{headerShown: false}}>
+          <Stack.Screen name="HomeScreen" component={HomeScreen} />
+          <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
+          <Stack.Screen name="Local" component={Local} />
+          <Stack.Screen name="Downloads" component={Downloads} />
+          <Stack.Screen name="DownloadManager" component={DownloadManager} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GlobalProvider>
   );
 }
 

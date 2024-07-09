@@ -9,14 +9,15 @@ import {
   StatusBar,
   Modal,
   ScrollView,
-  Button,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import Video from 'react-native-video';
 import Icons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {saveHistory} from './History';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const VideoPlayer = ({navigation}) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -34,11 +35,11 @@ const VideoPlayer = ({navigation}) => {
   const [subtitleModalVisible, setSubtitleModalVisible] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState({type: 'index', value: 0});
   const [isLoading, setIsLoading] = useState(true);
-  const [isRecorded, setIsRecorded] = useState(false);
   const [selectedSubtitle, setSelectedSubtitle] = useState({
     type: 'index',
     value: -1,
   });
+  const [isHttp, setIsHttp] = useState(false);
 
   const route = useRoute();
 
@@ -73,6 +74,7 @@ const VideoPlayer = ({navigation}) => {
         try {
           const {url, title} = await handleFetch(route.params.videoUrl);
           setVideoUri(url);
+          setIsHttp(true);
           setVideoTitle(title);
         } catch (error) {
           console.log(error);
@@ -81,6 +83,9 @@ const VideoPlayer = ({navigation}) => {
       } else if (route.params.histroyVideo) {
         try {
           const {link, title} = route.params.histroyVideo;
+          const isHttps = /^https:\/\//.test(link);
+          setIsHttp(isHttps);
+
           console.log('link: ' + link);
           setVideoUri(link);
           setVideoTitle(title);
@@ -91,6 +96,8 @@ const VideoPlayer = ({navigation}) => {
     };
 
     fetchData();
+
+    console.log(isHttp);
   }, [route.params.videoName, route.params.videoUrl]);
 
   const toggleFullScreen = () => {
@@ -128,6 +135,50 @@ const VideoPlayer = ({navigation}) => {
     } else {
       setControlsVisible(true);
     }
+  };
+
+  const handleDownload = () => {
+    setPaused(true);
+    const downloadDetail = [
+      {
+        Title: videoTitle,
+        Source: videoUri,
+        DownloadStatus: false,
+        FilePath: '',
+        Size: 0,
+      },
+    ];
+    const updateDownloadDetails = async () => {
+      const downloadDetailsString = await AsyncStorage.getItem(
+        'downloadDetails',
+      );
+
+      const downloadDetailsArray = downloadDetailsString
+        ? JSON.parse(downloadDetailsString)
+        : [];
+      const updatedArray = [...downloadDetail, ...downloadDetailsArray];
+      await AsyncStorage.setItem(
+        'downloadDetails',
+        JSON.stringify(updatedArray),
+      );
+      navigation.navigate('DownloadManager');
+    };
+    Alert.alert(
+      'Do you want to download?',
+      videoTitle,
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Download cancelled'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: updateDownloadDetails, // Call the download function if OK is pressed
+        },
+      ],
+      {cancelable: false},
+    );
   };
 
   return (
@@ -223,17 +274,13 @@ const VideoPlayer = ({navigation}) => {
                 </TouchableOpacity>
               </View>
               {/* DOWNLOAD BUTTON */}
-              <TouchableOpacity
-                style={styles.buttonDownload}
-                onPress={() => {
-                  setPaused(true);
-                  navigation.navigate('Downloads', {
-                    title: videoTitle,
-                    source: videoUri,
-                  });
-                }}>
-                <Text style={styles.buttonTextDownload}>DOWNLOAD</Text>
-              </TouchableOpacity>
+              {isHttp && (
+                <TouchableOpacity
+                  style={styles.buttonDownload}
+                  onPress={handleDownload}>
+                  <Text style={styles.buttonTextDownload}>DOWNLOAD</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           <View style={styles.overlaySeekContainer}>

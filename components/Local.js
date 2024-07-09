@@ -1,59 +1,46 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  PermissionsAndroid,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import RNFS from 'react-native-fs';
-import VideoPlayer from './videoPlayer';
+import Icons from 'react-native-vector-icons/MaterialIcons';
 
 const Local = ({navigation}) => {
   const [allVideos, setAllVideos] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
-    // requestStoragePermission();
-    scanForVideoFiles();
+    const load = async () => {
+      const localVideoString = await AsyncStorage.getItem('LocalVideos');
+
+      if (localVideoString !== null) {
+        const localVideos = JSON.parse(localVideoString);
+        setAllVideos(localVideos);
+      } else {
+        console.log('data no found');
+        scanForVideoFiles();
+      }
+    };
+    load();
   }, []);
 
-  //REQUEST PERMISSION
-  // const requestStoragePermission = async () => {
-  //   try {
-  //     const granted = await PermissionsAndroid.request(
-  //       PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-  //       {
-  //         title: 'Allow to Store data',
-  //         message: 'App needs access to your storage so you can watch videos',
-  //         buttonNeutral: 'Ask Me Later',
-  //         buttonNegative: 'Cancel',
-  //         buttonPositive: 'OK',
-  //       },
-  //     );
-  //     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-  //       console.log('Got permission');
-  //       getAllFolders();
-  //     } else if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-  //       console.log('Permission denied with "Never ask again" option');
-  //       openAppSettings();
-  //     } else {
-  //       console.log('Permission denied');
-  //     }
-  //   } catch (err) {
-  //     console.warn(err);
-  //   }
-  // };
+  useEffect(() => {
+    console.log(allVideos);
+  }, [allVideos]);
 
   //IS VIDEO FILE
   const isVideoFile = fileName => {
-    console.log('Checking video file');
     if (
       fileName.endsWith('.mp4') ||
       fileName.endsWith('.mov') ||
       fileName.endsWith('.avi') ||
       fileName.endsWith('.mkv')
     ) {
-      console.log('IS VIDEO FILE');
       return true;
     }
   };
@@ -63,17 +50,8 @@ const Local = ({navigation}) => {
     // console.log(files);
     let videoFiles = [];
     for (const file of files) {
-      console.log(
-        'File:',
-        file.name,
-        ', isDirectory:',
-        file.isDirectory(),
-        ', isFile:',
-        file.isFile(),
-      );
-
       if (file.isDirectory()) {
-        console.log(file.path);
+        console.log('scanning');
         try {
           const subFiles = await RNFS.readDir(file.path);
           videoFiles = videoFiles.concat(
@@ -96,44 +74,114 @@ const Local = ({navigation}) => {
   //SCAN AT ROOT OF THE DEVICE
   const scanForVideoFiles = async () => {
     try {
+      setIsLoading(true);
       const allFiles = await RNFS.readDir(RNFS.ExternalStorageDirectoryPath);
-      console.log(allFiles.map(file => file.name));
       const videoFiles = await recursivelyScanForVideoFiles(allFiles);
-      console.log('Video files:', videoFiles);
       setAllVideos(videoFiles);
+
+      await AsyncStorage.setItem('LocalVideos', JSON.stringify(videoFiles));
+      setIsLoading(false);
     } catch (error) {
       console.error('Error scanning for video files:', error);
     }
   };
   const renderVideoItem = ({item}) => {
+    const fileName = item.split('/').pop();
     return (
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate('VideoPlayer', {videoName: item})}>
-        <Text style={{color: 'black'}}>{item}</Text>
+        <View style={styles.thumbNail}>
+          <Icons name="play-circle-outline" size={30} color="#957500" />
+        </View>
+        <View
+          style={{flex: 1, paddingHorizontal: 10, justifyContent: 'center'}}>
+          <Text
+            style={{color: '#9c9c9c'}}
+            numberOfLines={2}
+            ellipsizeMode="tail">
+            {fileName}
+          </Text>
+        </View>
       </TouchableOpacity>
     );
   };
   return (
-    <View>
-      <Text style={{color: 'black'}}>Local Video Here..</Text>
+    <View style={styles.root}>
+      <View style={styles.header}>
+        <Text style={styles.headerColor}>LOCAL VIDEOS</Text>
+
+        <View>
+          {isLoading ? (
+            <ActivityIndicator size={25} color="#957500" />
+          ) : (
+            <TouchableOpacity onPress={scanForVideoFiles}>
+              <Icons name="refresh" size={25} color="#957500" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
       <View>
-        <FlatList
-          data={allVideos}
-          renderItem={renderVideoItem}
-          keyExtractor={(item, index) => index.toString()}
-        />
+        {allVideos.length === 0 ? (
+          <View
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}>
+            <Text>LOADING...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={allVideos}
+            renderItem={renderVideoItem}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={{paddingBottom: 80}}
+            extraData={allVideos}
+          />
+        )}
       </View>
     </View>
   );
 };
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#242424',
+  },
+  header: {
+    justifyContent: 'space-between',
+    // alignItems: 'center',
+    flexDirection: 'row',
+    backgroundColor: 'black',
+    paddingHorizontal: 28,
+    paddingVertical: 20,
+  },
+  headerColor: {
+    color: '#957500',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  flatList: {
+    flexGrow: 1,
+  },
+  thumbNail: {
+    backgroundColor: '#1f1f1f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 15,
+    marginEnd: '10',
+  },
   button: {
-    backgroundColor: '#d4d4d4',
+    margin: 10,
+    flexDirection: 'row',
+    height: 80,
+    backgroundColor: 'black',
     padding: 10,
-    borderRadius: 2,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#d4d4d4',
     justifyContent: 'center',
     // alignItems: 'center',
   },

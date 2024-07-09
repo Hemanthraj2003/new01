@@ -5267,11 +5267,6 @@ react-is@^17.0.1:
 react-native-aes-crypto@^3.0.1:
   version "3.0.1"
 
-react-native-background-downloader@^2.3.4:
-  version "2.3.4"
-  resolved "https://registry.npmjs.org/react-native-background-downloader/-/react-native-background-downloader-2.3.4.tgz"
-  integrity sha512-SqAnsf3dJ/aoj2zq8zG/qVcQZxeK3Le0PsoNQ00G/q6oDho2kHNfIOxthD/00B0t384J3u2gWurwRW8idI79zg==
-
 react-native-crypto-js@^1.0.0:
   version "1.0.0"
 
@@ -5344,7 +5339,7 @@ react-native-vector-icons@^10.1.0:
 react-native-video@^6.1.2:
   version "6.1.2"
 
-react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", react-native@>=0.57.0, react-native@0.73.6:
+react-native@*, "react-native@^0.0.0-0 || >=0.60 <1.0", react-native@0.73.6:
   version "0.73.6"
   dependencies:
     "@jest/create-cache-key-function" "^29.6.3"
